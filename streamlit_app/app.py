@@ -1,35 +1,47 @@
 import streamlit as st
-import os
 import pandas as pd
 import numpy as np
 import joblib
 import json
+import os
 
+# ---------------------------------------------------------------------------
 # Page config — this MUST be the first Streamlit command in the script
-
+# ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="Football Player Value Predictor",
     page_icon="⚽",
     layout="centered"
 )
 
+# ---------------------------------------------------------------------------
+# Build an absolute path to this script's own folder. Streamlit Community
+# Cloud always runs apps with the working directory set to the repo root,
+# regardless of which subfolder app.py lives in — so a plain relative path
+# like "value_model.pkl" breaks on Cloud even though it works fine locally
+# when you run `streamlit run app.py` from inside this folder. Anchoring to
+# __file__ makes the path correct in both places.
+# ---------------------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# ---------------------------------------------------------------------------
 # Load the trained model once and cache it.
 # @st.cache_resource tells Streamlit: "run this function once, then reuse
 # the result across every rerun" — without it, the model would reload from
 # disk every single time a user moves a slider, which is slow and wasteful.
-
+# ---------------------------------------------------------------------------
 @st.cache_resource
 def load_model():
-    model = joblib.load("value_model.pkl")
-    with open("feature_columns.json") as f:
+    model = joblib.load(os.path.join(BASE_DIR, "value_model.pkl"))
+    with open(os.path.join(BASE_DIR, "feature_columns.json")) as f:
         feature_columns = json.load(f)
     return model, feature_columns
 
 model, feature_columns = load_model()
 
+# ---------------------------------------------------------------------------
 # Header
-
+# ---------------------------------------------------------------------------
 st.title("⚽ Football Player Value Predictor")
 st.write(
     "Enter a player's attributes and get a predicted market value, using a "
@@ -42,10 +54,11 @@ st.write(
 
 st.divider()
 
+# ---------------------------------------------------------------------------
 # Input widgets, laid out in two columns for a tidier form.
 # st.columns(2) splits the page into two side-by-side areas; anything called
 # inside "with col1:" renders in the left column, and so on.
-
+# ---------------------------------------------------------------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -71,12 +84,14 @@ with col2:
 
 st.divider()
 
+# ---------------------------------------------------------------------------
 # Build the input row EXACTLY matching the training feature columns.
 # The model has no idea what "Forward" means as text — during training we
 # one-hot encoded position_group into pos_Forward / pos_Goalkeeper /
 # pos_Midfielder (Defender was the dropped baseline category). We have to
 # recreate that same encoding here, in the same column order, or the model
 # will silently misread which number belongs to which feature.
+# ---------------------------------------------------------------------------
 def build_input_row(overall, potential, age, international_reputation,
                      pace, shooting, passing, dribbling, defending, physic,
                      weak_foot, skill_moves, position_group, feature_columns):
@@ -100,11 +115,11 @@ def build_input_row(overall, potential, age, international_reputation,
     # Reorder to match training exactly, as a single-row DataFrame
     return pd.DataFrame([[row[col] for col in feature_columns]], columns=feature_columns)
 
-
+# ---------------------------------------------------------------------------
 # Predict button. Every widget interaction reruns the whole script top to
 # bottom — st.button returns True only on the run where it was just clicked,
 # so the prediction block only fires then.
-
+# ---------------------------------------------------------------------------
 if st.button("Predict Market Value", type="primary"):
     X_input = build_input_row(
         overall, potential, age, international_reputation,
