@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import pandas as pd
 import numpy as np
 import joblib
@@ -20,6 +21,10 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    model_path = os.path.join(base_dir, "value_model.pkl")
+    feature_path = os.path.join(base_dir, "feature_columns.json")
     model = joblib.load("value_model.pkl")
     with open("feature_columns.json") as f:
         feature_columns = json.load(f)
