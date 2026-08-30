@@ -2,6 +2,10 @@
 
 **What actually drives a footballer's market value?** An end-to-end data science project that scrapes, cleans, explores, and models FIFA 24 player data from Europe's top 5 leagues to answer that question — and along the way, uncovers a counter-intuitive insight about what *looks* predictive versus what actually *is*.
 
+### 🚀 [Try the live demo →](https://football-intelligence.streamlit.app)
+
+Enter a player's attributes and get a predicted market value in real time, powered by the Random Forest model described below.
+
 ---
 
 ## 📌 Project Overview
@@ -21,11 +25,20 @@ Using player data from the Premier League, La Liga, Serie A, Bundesliga, and Lig
 
 ```
 ├── data/
+│   ├── raw/
+│   │   ├── Dataset/male_players.csv    # original raw scrape source (not tracked in git — see .gitignore)
+│   │   └── fifa24_players.csv          # FIFA 24 filtered, pre-league-filter
 │   └── cleaned/
 │       └── fifa24_top5_leagues.csv     # 3,467 players, 40 attributes, top 5 leagues
-├── 01_scraping.ipynb                   # Raw data → filtered, cleaned dataset
-├── 02_eda.ipynb                        # 7 business questions, explored & answered
-├── 03_modeling.ipynb                   # Feature engineering, model comparison, feature importance
+├── notebooks/
+│   ├── 01_scraping.ipynb               # Raw data → filtered, cleaned dataset
+│   ├── 02_eda.ipynb                    # 7 business questions, explored & answered
+│   └── 03_modeling.ipynb               # Feature engineering, model comparison, feature importance
+├── streamlit_app/                      # Live interactive demo (deployed to Streamlit Cloud)
+│   ├── app.py
+│   ├── value_model.pkl
+│   ├── feature_columns.json
+│   └── requirements.txt
 ├── assets/                             # Charts referenced in this README
 └── README.md
 ```
@@ -130,13 +143,12 @@ cd football-intelligence-dashboard
 pip install pandas numpy matplotlib seaborn scikit-learn jupyter
 ```
 
-Run the notebooks in order from the project root: `01_scraping.ipynb` → `02_eda.ipynb` → `03_modeling.ipynb`.
+Run the notebooks in order from inside the `notebooks/` folder: `01_scraping.ipynb` → `02_eda.ipynb` → `03_modeling.ipynb`.
 
 ---
 
 ## 🔮 Future Work
 
-- Interactive Streamlit app where a user inputs a player's stats and gets a predicted market value
 - Extend beyond the top 5 leagues to test whether the model generalizes
 - Try gradient boosting (XGBoost/LightGBM) for a further performance comparison
 
