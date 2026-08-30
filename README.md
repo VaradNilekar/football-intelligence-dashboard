@@ -1,2 +1,147 @@
-# football-intelligence-dashboard
-A comprehensive data-driven platform analyzing player performance, market values, and league comparisons across top 5 European leagues using FIFA 24 data
+# ⚽ Football Intelligence Dashboard
+
+**What actually drives a footballer's market value?** An end-to-end data science project that scrapes, cleans, explores, and models FIFA 24 player data from Europe's top 5 leagues to answer that question — and along the way, uncovers a counter-intuitive insight about what *looks* predictive versus what actually *is*.
+
+---
+
+## 📌 Project Overview
+
+Using player data from the Premier League, La Liga, Serie A, Bundesliga, and Ligue 1, this project:
+
+1. Cleans and prepares a raw dataset of 3,467 players
+2. Explores 7 business questions about league quality, wages, value drivers, and undervalued talent
+3. Builds and compares regression models to predict player market value
+4. Tests whether wage data actually helps predict value, or is just a proxy for skill the model already has
+
+**Headline result:** A Random Forest model explains **97% of the variance** in player value using only on-pitch attributes — and doesn't need wage data to do it.
+
+---
+
+## 📂 Repo Structure
+
+```
+├── data/
+│   └── cleaned/
+│       └── fifa24_top5_leagues.csv     # 3,467 players, 40 attributes, top 5 leagues
+├── 01_scraping.ipynb                   # Raw data → filtered, cleaned dataset
+├── 02_eda.ipynb                        # 7 business questions, explored & answered
+├── 03_modeling.ipynb                   # Feature engineering, model comparison, feature importance
+├── assets/                             # Charts referenced in this README
+└── README.md
+```
+
+---
+
+## 🗂️ Dataset
+
+Sourced from a public FIFA 24 player ratings dataset, filtered down to:
+- **3,467 players** across the **top 5 European leagues**
+- **40 attributes** per player: overall/potential rating, market value, wage, position, physical and technical attributes, nationality, club, and more
+
+**Data cleaning:** 402 players (all goalkeepers) were missing outfield attributes (`pace`, `shooting`, `passing`, `dribbling`, `defending`, `physic`) — expected, since FIFA doesn't rate goalkeepers on those skills. These and 233 missing `release_clause_eur` values were filled with 0 rather than dropped, preserving the full player set.
+
+---
+
+## 🔍 Exploratory Data Analysis — Key Findings
+
+### Q1: Which league has the best players?
+![League Quality](assets/q1_league_quality.png)
+
+**La Liga edges out the Premier League** in average player quality (73.05 vs 72.91), but the Premier League pays significantly more (€12.7M avg value vs €11.1M). The Bundesliga has the lowest rated and valued players but the most players overall (850) — reflecting a philosophy of developing youth over buying stars.
+
+### Q2: Which league pays the most?
+![League Wages](assets/q2_league_wages.png)
+
+**Premier League dominates** — average weekly wage of €48,423, nearly 3x the Bundesliga's €16,304. Even the *median* EPL player (€37,000/week) out-earns most players in La Liga or Serie A, showing the gap is systemic, not just a handful of superstars.
+
+### Q3: What makes a player valuable?
+![Value Correlation](assets/q3_value_correlation.png)
+
+Top correlates with market value: **wage (0.82)**, **overall rating (0.67)**, **international reputation (0.66)**, **potential (0.64)**. Surprisingly, **age has almost no correlation (0.07)** — and **defending stats are the weakest technical correlate (0.15)**, suggesting the market structurally undervalues defensive skill relative to attacking output.
+
+### Q4: Who are the most undervalued players?
+Using a Value Score (overall rating ÷ value in millions) among players 29 or younger rated 78+: hidden gems included Y. Mvogo (GK, Lorient), Héctor Bellerín (DEF, Real Betis), M. Lemina (MID, Wolves), and A. Belotti (FWD, Roma). Most undervalued players cluster in **Ligue 1 and Serie A**, reinforcing that Premier League and La Liga consistently pay a premium for comparable quality.
+
+### Q5: How does age affect performance and value?
+![Age Analysis](assets/q5_age_analysis.png)
+
+Performance and value **peak at different ages** — average overall rating peaks at **30**, but average market value peaks earlier, at **24**. Clubs pay a premium for remaining prime years, not just current ability — explaining why age's raw correlation with value is near zero (it's a trade-off, not a linear effect).
+
+### Q6: Which nation produces the best players?
+![Nation Quality](assets/q6_nation_quality.png)
+
+Among nations with 15+ players in the dataset, **Portugal (76.56 avg overall)**, **Netherlands (76.02)**, and **Argentina (75.84)** lead. Austria is a notable outlier — 231 players (one of the largest groups) but the lowest average rating, suggesting it supplies squad depth rather than headline talent.
+
+### Q7: Which position earns the most?
+![Position Pay](assets/q7_position_pay.png)
+
+**Forwards earn the most** (€34,186/week avg) despite defenders having a slightly *higher* average skill rating (72.15 vs 71.94). **Goalkeepers earn the least**, roughly half of forwards. The market rewards attacking output and visibility over balanced quality — echoing the Q3 finding on defenders.
+
+---
+
+## 🤖 Modeling: Predicting Player Market Value
+
+**Target:** `value_eur` — heavily right-skewed (skew = 4.27) due to a handful of superstar transfers, so the model was trained on `log1p(value_eur)` and predictions were converted back to euros for evaluation.
+
+![Target Distribution](assets/model_target_skew.png)
+
+**Two feature sets were compared** to test a specific question raised by the EDA — does wage actually help predict value, or is it redundant?
+
+- **Model A:** on-pitch attributes + position + `wage_eur`
+- **Model B:** on-pitch attributes + position, *no* `wage_eur`
+
+Each was trained with both a **Linear Regression** baseline and a **Random Forest**.
+
+| Feature Set | Model | RMSE (€) | MAE (€) | R² |
+|---|---|---|---|---|
+| A (with wage) | Linear Regression | 9,468,126 | 2,036,706 | 0.686 |
+| A (with wage) | Random Forest | 2,830,770 | 697,036 | **0.972** |
+| B (no wage) | Linear Regression | 8,177,701 | 1,906,885 | 0.766 |
+| B (no wage) | Random Forest | 2,676,460 | 679,177 | **0.975** |
+
+**Random Forest massively outperforms Linear Regression** — player value doesn't move linearly with skill, and Random Forest captures those non-linear jumps naturally.
+
+### The interesting result: wage doesn't actually help
+
+![Feature Importance](assets/model_feature_importance.png)
+
+Despite `wage_eur` having the *strongest single correlation* with value in the EDA (0.82), **Model B (without wage) performs just as well, if not marginally better** than Model A. Feature importance reveals why: `overall` (~80%) and `potential` (~14%) alone account for ~94% of the model's predictive power — `wage_eur`'s importance is a negligible ≈0.002.
+
+**Why the disconnect between correlation and importance?** Correlation looks at one variable in isolation — wage is high *because* overall/potential are high, so it looks predictive on its own. But once a model already knows a player's rating and potential, wage adds no new information. This is **multicollinearity**: two features carrying overlapping signal, where only one gets "credit" in a multivariate model.
+
+**Conclusion:** The final model is **Random Forest on Model B** — simpler (one fewer input, and one that isn't always public knowledge), and performs just as well. A player's market value is, in short, almost entirely explained by how good they are *right now* and how good they *could become*, with age as a moderate tiebreaker.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Python** — pandas, numpy
+- **Visualization** — matplotlib, seaborn
+- **Modeling** — scikit-learn (Linear Regression, Random Forest)
+- **Environment** — Jupyter notebooks, VS Code
+
+---
+
+## ▶️ How to Run
+
+```bash
+git clone <your-repo-url>
+cd football-intelligence-dashboard
+pip install pandas numpy matplotlib seaborn scikit-learn jupyter
+```
+
+Run the notebooks in order from the project root: `01_scraping.ipynb` → `02_eda.ipynb` → `03_modeling.ipynb`.
+
+---
+
+## 🔮 Future Work
+
+- Interactive Streamlit app where a user inputs a player's stats and gets a predicted market value
+- Extend beyond the top 5 leagues to test whether the model generalizes
+- Try gradient boosting (XGBoost/LightGBM) for a further performance comparison
+
+---
+
+## 👤 Author
+
+**Varad Nilekar** — [GitHub](https://github.com/VaradNilekar)

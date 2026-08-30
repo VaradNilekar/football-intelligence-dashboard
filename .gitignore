@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# OS / Editor
+.DS_Store
+.vscode/
+
+# Large/local artifacts (uncomment if you don't want raw scrape data in git)
+# data/raw/
