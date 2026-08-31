@@ -4,7 +4,7 @@
 
 ### 🚀 [Try the live demo →](https://football-intelligence.streamlit.app)
 
-Enter a player's attributes and get a predicted market value in real time, powered by the Random Forest model described below.
+Search any real player from the top 5 leagues and see the model's prediction next to their actual value, or build a custom player with the sliders — either way, a chart breaks down exactly which attributes drove that specific prediction (powered by SHAP).
 
 ---
 
@@ -16,8 +16,9 @@ Using player data from the Premier League, La Liga, Serie A, Bundesliga, and Lig
 2. Explores 7 business questions about league quality, wages, value drivers, and undervalued talent
 3. Builds and compares regression models to predict player market value
 4. Tests whether wage data actually helps predict value, or is just a proxy for skill the model already has
+5. Validates the final model with cross-validation and error analysis to find exactly where it struggles
 
-**Headline result:** A Random Forest model explains **97% of the variance** in player value using only on-pitch attributes — and doesn't need wage data to do it.
+**Headline result:** A Random Forest model explains **98% of the variance** in player value using only on-pitch attributes (validated with 5-fold cross-validation) — and doesn't need wage data to do it. Error analysis further shows exactly where it struggles: aging veterans and goalkeepers.
 
 ---
 
@@ -123,6 +124,26 @@ Despite `wage_eur` having the *strongest single correlation* with value in the E
 **Why the disconnect between correlation and importance?** Correlation looks at one variable in isolation — wage is high *because* overall/potential are high, so it looks predictive on its own. But once a model already knows a player's rating and potential, wage adds no new information. This is **multicollinearity**: two features carrying overlapping signal, where only one gets "credit" in a multivariate model.
 
 **Conclusion:** The final model is **Random Forest on Model B** — simpler (one fewer input, and one that isn't always public knowledge), and performs just as well. A player's market value is, in short, almost entirely explained by how good they are *right now* and how good they *could become*, with age as a moderate tiebreaker.
+
+---
+
+## ✅ Model Validation & Error Analysis
+
+A single train/test split can flatter (or unfairly penalize) a model by chance. To validate the result properly, the final model was checked two further ways.
+
+**5-fold cross-validation:** Random Forest holds up — **R² = 0.981 ± 0.008** across 5 independent folds, every fold landing between 0.97 and 0.99. Linear Regression, by contrast, swings from **0.43 to 0.93** depending on the fold — a level of instability the original single split never revealed.
+
+**Error analysis (out-of-fold predictions across all 3,467 players):**
+
+![Error Analysis](assets/model_error_analysis.png)
+
+Overall the model is tight — **median absolute error of 3.1%**, mean of 5.3%. But the errors aren't random; they cluster in three clear patterns:
+
+- **Elite young superstars are underpriced.** Haaland, Mbappé, Musiala, and Vinícius Jr. are all predicted €20–50M *below* their real value — a "star power" premium (brand value, proven big-game impact) that attribute ratings alone don't capture.
+- **Aging veterans are overpriced, badly.** Error jumps from ~3–5% for players under 32 to **17.6%** for players 32+, the single strongest pattern found. Lewandowski (34) is the worst individual miss in the dataset — model predicts €96M, actual value is €58M. The market discounts age-related risk far more than the model does.
+- **Goalkeepers are the hardest position to price** — 10.9% mean error vs. 4–5% for every outfield position, since zeroing out outfield attributes for GKs leaves the model with few signals to distinguish an elite keeper from an average one.
+
+**Honest takeaway:** the R²=0.98 headline is real, but it hides systematic blind spots around reputation premiums, age-related decline, and goalkeepers specifically. A production version would benefit from an explicit age-decay feature and dedicated goalkeeper attributes.
 
 ---
 
